@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Modules">
+            <directory>tests/Feature/Modules</directory>
+        </testsuite>
+        <testsuite name="Settings">
+            <directory>tests/Feature/Settings</directory>
+            <file>tests/Feature/Security/GlobalSettingsAccessTest.php</file>
+        </testsuite>
+        <testsuite name="Directory">
+            <directory>tests/Feature/Directory</directory>
+        </testsuite>
+        <testsuite name="Communication">
+            <directory>tests/Feature/Communication</directory>
+            <directory>tests/Unit/Communication</directory>
+            <file>tests/Feature/Modules/CommunicationComposeModuleTest.php</file>
+            <file>tests/Feature/Modules/MessagesModuleTest.php</file>
+            <file>tests/Feature/Modules/EfaxModuleTest.php</file>
+        </testsuite>
+        <testsuite name="Integrations">
+            <directory>tests/Unit/Integrations</directory>
+            <file>tests/Unit/Support/IntegrationTestResultTest.php</file>
+            <file>tests/Feature/Settings/GlobalSettingsIntegrationTestTest.php</file>
+            <file>tests/Feature/Integration/PlatformIntegrationTest.php</file>
+        </testsuite>
+        <testsuite name="ModuleFeatures">
+            <directory>tests/Feature/Modules</directory>
+            <directory>tests/Feature/Settings</directory>
+            <directory>tests/Feature/Directory</directory>
+            <directory>tests/Feature/Communication</directory>
+            <directory>tests/Unit/Integrations</directory>
+            <directory>tests/Unit/Communication</directory>
+            <file>tests/Unit/Support/IntegrationTestResultTest.php</file>
+            <file>tests/Feature/Security/GlobalSettingsAccessTest.php</file>
+            <file>tests/Feature/Integration/PlatformIntegrationTest.php</file>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <ini name="memory_limit" value="512M"/>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="CAPTCHA_DISABLE" value="true"/>
+        <env name="ALLOW_PUBLIC_REGISTRATION" value="false"/>
+    </php>
+</phpunit>

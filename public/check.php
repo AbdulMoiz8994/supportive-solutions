@@ -1,0 +1,1 @@
+<?php echo " SERVER_FILES_ARE_UPDATED\;

@@ -1,0 +1,64 @@
+name: Deploy Laravel
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup Node.js 
+        uses: actions/setup-node@v4 
+        with: 
+          node-version: 22 
+          cache: npm
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build Assets
+        run: npm run build
+        
+      - name: Create Deployment ZIP
+        run: |
+          zip -r beydountech.zip . \
+            -x ".git/*" \
+            -x "node_modules/*" \
+            -x "vendor/*" \
+            -x ".env" \
+            -x "storage/*"
+
+      - name: Upload ZIP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "beydountech.zip"
+          target: "/var/www/vhosts/beydountech.com"
+
+      - name: Run Deployment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/vhosts/beydountech.com
+            ./deploy.sh

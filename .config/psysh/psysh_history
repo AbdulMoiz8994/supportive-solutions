@@ -1,0 +1,5 @@
+_HiStOrY_V2_
+exit
+config('cache.default');
+env('CACHE_DRIVER');
+quit

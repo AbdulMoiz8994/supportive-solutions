@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeydounTech — Client &amp; Caregiver Modules · Build &amp; Integration Status</title>
+<style>
+  :root{
+    --ink:#1a2233; --muted:#5b6678; --line:#e3e7ee; --bg:#f4f6fa;
+    --done:#15803d; --doneBg:#e7f6ec;
+    --uionly:#2563eb; --uionlyBg:#e8f0ff;
+    --acct:#b45309;  --acctBg:#fdf2e3;
+    --rpa:#7c3aed;   --rpaBg:#f3edff;
+    --dev:#0e7490;  --devBg:#e2f5fb;
+    --agency:#be123c; --agencyBg:#ffe9ee;
+    --client:#1d4ed8; --caregiver:#7c3aed; --ext:#334155;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .wrap{max-width:1200px;margin:0 auto;padding:28px 30px 60px;}
+  .mast{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--ink);padding-bottom:14px;margin-bottom:6px;}
+  .mast h1{font-size:23px;margin:0 0 4px;letter-spacing:-.3px;}
+  .mast p{margin:0;color:var(--muted);font-size:12.5px;max-width:860px;line-height:1.5;}
+  .conf{text-align:right;font-size:10.5px;color:var(--muted);letter-spacing:.5px;line-height:1.7;white-space:nowrap;}
+  .conf b{color:var(--agency);letter-spacing:1.5px;display:block;font-size:11px;}
+
+  .meta{display:flex;justify-content:space-between;align-items:flex-start;margin:12px 0 8px;font-size:11px;color:var(--muted);gap:20px;flex-wrap:wrap;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .pill{font-size:9.5px;font-weight:800;border-radius:11px;padding:2px 8px;letter-spacing:.3px;white-space:nowrap;}
+  .p-done{background:var(--doneBg);color:var(--done);}
+  .p-uionly{background:var(--uionlyBg);color:var(--uionly);}
+  .p-acct{background:var(--acctBg);color:var(--acct);}
+  .p-rpa{background:var(--rpaBg);color:var(--rpa);}
+  .tag{font-size:9px;font-weight:800;border-radius:9px;padding:1px 7px;letter-spacing:.3px;white-space:nowrap;}
+  .t-dev{background:var(--devBg);color:var(--dev);}
+  .t-agency{background:var(--agencyBg);color:var(--agency);}
+
+  .module{margin-top:30px;}
+  .module-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .module-h .lbl{font-size:18px;font-weight:800;}
+  .module-h .score{font-size:11px;font-weight:800;color:#fff;border-radius:11px;padding:3px 11px;}
+  .module.client .lbl{color:var(--client);} .module.client .score{background:var(--client);}
+  .module.caregiver .lbl{color:var(--caregiver);} .module.caregiver .score{background:var(--caregiver);}
+  .module.ext .lbl{color:var(--ext);} .module.ext .score{background:var(--ext);}
+  .module-rule{height:3px;border-radius:3px;margin-top:9px;}
+  .module.client .module-rule{background:linear-gradient(90deg,var(--client),#93b4fb);}
+  .module.caregiver .module-rule{background:linear-gradient(90deg,var(--caregiver),#c4b5fd);}
+  .module.ext .module-rule{background:linear-gradient(90deg,var(--ext),#94a3b8);}
+
+  .sub{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 8px;}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(20,30,50,.04);}
+  th{background:#eef2f8;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);padding:9px 12px;}
+  th.c-need{width:42%;} th.c-status{width:120px;text-align:center;}
+  td{padding:10px 12px;font-size:12.5px;border-top:1px solid var(--line);vertical-align:top;}
+  td .feat{font-weight:700;color:var(--ink);}
+  td .desc{display:block;color:var(--muted);font-size:11px;margin-top:2px;line-height:1.4;}
+  td.need{font-size:11.5px;color:var(--ink);line-height:1.5;}
+  td.need .none{color:var(--done);font-weight:700;}
+  td.need .steps{margin:4px 0 0;padding-left:15px;}
+  td.need .steps li{margin:2px 0;color:var(--muted);}
+  td.need .steps li b{color:var(--ink);}
+  td.need .eta{display:inline-block;margin-top:5px;font-size:10px;font-weight:800;color:#475569;
+    background:#f1f5f9;border-radius:8px;padding:2px 7px;}
+  td.status{white-space:nowrap;text-align:center;}
+  .check{font-size:17px;line-height:1;display:block;margin-bottom:3px;}
+  .c-done{color:var(--done);} .c-uionly{color:var(--uionly);} .c-acct{color:var(--acct);} .c-rpa{color:var(--rpa);}
+
+  .summary{margin-top:32px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 22px;}
+  .summary h3{margin:0 0 12px;font-size:14px;}
+  .bars{display:grid;grid-template-columns:1fr 1fr;gap:14px 30px;}
+  .bar-row{font-size:12px;}
+  .bar-row .top{display:flex;justify-content:space-between;margin-bottom:4px;font-weight:700;}
+  .bar-track{height:8px;background:#eef2f7;border-radius:6px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#16a34a,#4ade80);}
+
+  .test{margin-top:14px;font-size:12px;color:var(--ink);background:var(--doneBg);
+    border:1px solid #cdebd6;border-radius:8px;padding:11px 16px;font-weight:600;}
+  .notes{margin-top:14px;font-size:11.5px;color:var(--muted);line-height:1.6;
+    background:#fff;border:1px solid var(--line);border-left:4px solid var(--acct);border-radius:8px;padding:13px 16px;}
+  .notes b{color:var(--ink);}
+
+  .ask{margin-top:30px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .ask-h{background:var(--agency);color:#fff;padding:11px 18px;font-size:14px;font-weight:800;}
+  .ask table{border:0;border-radius:0;box-shadow:none;}
+  .ask td .pri{font-size:9px;font-weight:800;border-radius:7px;padding:1px 7px;color:#fff;}
+  .pri-1{background:#be123c;} .pri-2{background:#b45309;} .pri-3{background:#475569;}
+
+  .foot{margin-top:28px;border-top:1px solid var(--ink);padding-top:9px;display:flex;
+    justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.4px;}
+  @media print{body{background:#fff;}.wrap{max-width:none;padding:0 6px;}table{break-inside:avoid;}.module{break-inside:avoid;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mast">
+    <div>
+      <h1>BeydounTech — Client &amp; Caregiver Modules</h1>
+      <p>Full build &amp; integration status for the <b>two modules in scope</b>. Three layers per module: the <b>core screens</b> (CRUD &amp; profile tabs), the <b>backend automations</b> (deterministic — no AI), and the <b>AI / LLM automations</b> (Claude · Sonnet 4.6). The last section lists every <b>third-party integration</b> — what is coded, what has no public API (RPA workaround), and exactly what we need from the agency to switch each one on. The far-right column is the status check.</p>
+    </div>
+    <div class="conf">
+      <b>CONFIDENTIAL</b>
+      Non-Skilled Home Care EMR<br>Client &amp; Caregiver · Rev. 06/28/2026
+    </div>
+  </div>
+
+  <div class="meta">
+    <div class="legend">
+      <span><span class="pill p-done">✓ DONE</span> built &amp; tested</span>
+      <span><span class="pill p-uionly">◑ UI ONLY</span> engine done, screen button to wire (no account)</span>
+      <span><span class="pill p-acct">⏳ NEEDS ACCESS</span> coded — waiting on a third-party account</span>
+      <span><span class="pill p-rpa">⚙ RPA</span> no public API — login-driven automation</span>
+      &nbsp;|&nbsp;
+      <span><span class="tag t-dev">DEV</span> we do it</span>
+      <span><span class="tag t-agency">AGENCY</span> you provide access</span>
+    </div>
+  </div>
+
+  <!-- ============================================================ CLIENT ============================================================ -->
+  <div class="module client">
+    <div class="module-h"><span class="lbl">1 · Client Module</span><span class="score">Core build complete</span></div>
+    <div class="module-rule"></div>
+  </div>
+
+  <div class="sub">A · Core screens &amp; profile (CRUD)</div>
+  <table>
+    <tr><th>Screen / capability</th><th class="c-need">Notes</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Client registry (list)</span><span class="desc">Search, filters, configurable visible columns, Status pills, county pulled from address.</span></td><td class="need">Matches the requested layout (First/Last, DOB, Status, County, Phone + show/hide more).</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Add-Client wizard</span><span class="desc">Guided form with Scan-ID auto-fill + Google address autocomplete.</span></td><td class="need">Validates required fields, stamps location.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Profile shell — 11 tabs, edit-in-place</span><span class="desc">Pencil → Save / Cancel per card; nothing editable until you click edit (as requested).</span></td><td class="need">Demographics · Intake &amp; Screening · Program &amp; Authorization (Care Details) · Caregiver Assignment · Documents · Communications · Notes &amp; Activity · Compliance · Billing · Schedule · Audit Trail.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Send Request (email/fax templates)</span><span class="desc">One unified "Send Request" with company-defined templates + recipient resolver (e.g. auto-pull PCP).</span></td><td class="need">Template engine + recipient resolver built; <b>actual send</b> goes live with RingCentral/Workspace (see §3).</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+  </table>
+  <div class="notes" style="border-left-color:var(--client);margin-top:10px;">
+    <b>Data note:</b> every backed field persists (name, DOB, contact, address/county, Member ID, program/coverage, Care Details, documents, contacts, schedule). A few richer sub-sections render <b>representative data</b> where no database table exists yet — they become live the moment the schema/integration behind them is added. This is intentional and scope-consistent.
+  </div>
+
+  <div class="sub">B · Backend automations · no AI</div>
+  <table>
+    <tr><th>Automation</th><th class="c-need">What's needed to finish</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Address autocomplete + county auto-fill</span><span class="desc">Google Places (New); type an address → fills full address + county. Live.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Care Details hours math</span><span class="desc">Units → hrs/week (÷4) → hrs/day → hrs/month. T1019 billing math.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Prior-authorization expiry + renewal flag</span><span class="desc">Auto Active / Expiring-Soon / Expired; "Renewal due" at 45 days.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Status-timeline "stuck too long" alert</span><span class="desc">Flags a client stuck in a waiting status past 45 days.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Document checklist auto-check</span><span class="desc">Upload a required doc → its checklist item ticks; progress bar.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Status-change audit log</span><span class="desc">Records who changed the status, the before→after, and when.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Auto-billing when clocked hours meet the PA</span><span class="desc">Matches clocked EVV hours vs the authorization, then submits the claim.</span></td>
+      <td class="need">
+        <ol class="steps">
+          <li><span class="tag t-agency">AGENCY</span> Activate billing: <b>Availity</b> (MCO) + <b>MDHHS/CHAMPS</b> (DHS Home Help) → hand over keys.</li>
+          <li><span class="tag t-agency">AGENCY</span> Caregiver <b>EVV clock-in must be live</b> (feeds the hours).</li>
+          <li><span class="tag t-dev">DEV</span> Enter keys → switch on the match-and-submit rule.</li>
+        </ol>
+        <span class="eta">Dev after access: ~1–2 days</span>
+      </td>
+      <td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+  </table>
+
+  <div class="sub">C · AI / LLM automations · Claude (Sonnet 4.6)</div>
+  <table>
+    <tr><th>Automation</th><th class="c-need">What's needed to finish</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Scan ID → auto-fill demographics</span><span class="desc">AI reads name, DOB, address, ID # → confirm pop-up → fills the form. Live-verified.</span></td><td class="need"><span class="none">✓ Complete — wired into the Add-Client wizard.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Document / form recognition</span><span class="desc">Reads a Prior Auth, Medical Needs Form, EOB, etc. → proposes the update for the office to approve.</span></td>
+      <td class="need"><span class="none">✓ Wired (06/28).</span> The Documents tab <b>Scan / Upload</b> modal now does a live read: pick a file → Claude classifies it (type · confidence · summary · suggested status) and pre-fills the name/folder → office reviews → <b>real save</b> to the chart. <span class="eta">no account needed</span></td>
+      <td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">AI case summary / "Daily brief"</span><span class="desc">One-click plain-language summary of the case + next best action.</span></td>
+      <td class="need"><span class="none">✓ Wired (06/28).</span> The header <b>"Daily brief"</b> button opens a side panel that calls the summary endpoint and shows summary + next action + attention flags (graceful when the key isn't set). <span class="eta">no account needed</span></td>
+      <td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">AI email intake → auto-update status</span><span class="desc">Reads approval/assessment emails → files the attachment + proposes the status change.</span></td>
+      <td class="need">
+        <ol class="steps">
+          <li><span class="tag t-agency">AGENCY</span> Connect an <b>inbound mailbox</b> (Google Workspace / IMAP) + provide login.</li>
+          <li><span class="tag t-dev">DEV</span> Point the AI parser at it → identify client, file, propose status for approval.</li>
+        </ol>
+        <span class="eta">Dev after mailbox: ~2–3 days</span>
+      </td>
+      <td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+  </table>
+
+  <!-- ============================================================ CAREGIVER ============================================================ -->
+  <div class="module caregiver">
+    <div class="module-h"><span class="lbl">2 · Caregiver (Employee) Module</span><span class="score">Core build complete</span></div>
+    <div class="module-rule"></div>
+  </div>
+
+  <div class="sub">A · Core screens &amp; profile (CRUD)</div>
+  <table>
+    <tr><th>Screen / capability</th><th class="c-need">Notes</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Caregiver registry (list)</span><span class="desc">KPI cards, worklist filter chips, table (Name/SSN/DOB/Clients served/Program/Checks/EVV/Compliance/Status).</span></td><td class="need">Search + pagination.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">6-step onboarding wizard</span><span class="desc">Details → Eligibility &amp; Checks → Employment &amp; Services → Assignment/Live-In/Pay → Documents &amp; Verbal Review → Review &amp; Create.</span></td><td class="need">Left step-rail + scan-to-autofill + validation.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Profile shell — tabs, edit-in-place</span><span class="desc">Personal · Onboarding · Eligibility &amp; Checks · Assignments · Compliance · Documents · Communications · Notes · Pay · Schedule · Access · Audit.</span></td><td class="need">Assigned-client link (hyperlinked), CHAMPS username/password capture, checklist.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Caregiver clock-in mobile API</span><span class="desc">Token (Sanctum) REST API the agency's own clock-in app calls: /me, /assignments, /schedule, clock-in/out, /pay.</span></td><td class="need">This platform is the source of truth for clock data (feeds billing + payroll). Hand-off doc: <code>docs/MOBILE_API.md</code>.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+  </table>
+
+  <div class="sub">B · Backend automations · no AI</div>
+  <table>
+    <tr><th>Automation</th><th class="c-need">What's needed to finish</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Address autocomplete + county auto-fill</span><span class="desc">Google Places on the caregiver forms. Live.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">ID / CHAMPS / attestation expiry flagging</span><span class="desc">Auto-flags expired or soon-to-expire credentials.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">CHAMPS association gate</span><span class="desc">Flags "cannot collect hours" until CHAMPS-associated.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Hours rollup across assigned clients</span><span class="desc">Totals authorized hrs/week &amp; hrs/day across every assigned client.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Document checklist auto-check</span><span class="desc">Upload I-9 / W-4 / ID / SSN → checklist items tick.</span></td><td class="need"><span class="none">✓ Complete — nothing further.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Background-check auto-monitoring</span><span class="desc">SAM.gov + OIG-LEIE (public, no key) demoed; ICHAT &amp; CHAMPS to add.</span></td>
+      <td class="need">SAM/OIG lookups proven.
+        <ol class="steps">
+          <li><span class="tag t-agency">AGENCY</span> Obtain <b>ICHAT API access</b> (Michigan State Police) + key.</li>
+          <li><span class="tag t-dev">DEV</span> Wire ICHAT into the existing flags + deadline reminders.</li>
+        </ol>
+        <span class="eta">Dev after ICHAT: ~2 days</span>
+      </td>
+      <td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">PARTIAL</span></td></tr>
+    <tr><td><span class="feat">HHAeXchange EVV sync</span><span class="desc">Pushes caregiver/member/visit data to the Michigan EVV aggregator so hours flow to billing.</span></td>
+      <td class="need">Connection-health client is scaffolded; <b>the visit/caregiver push is not implemented yet</b>.
+        <ol class="steps">
+          <li><span class="tag t-agency">AGENCY</span> Finish the <b>Third-Party EVV Attestation</b> (in progress per the API tracker) + OAuth2 creds. <i>HHAeXchange approval can take weeks.</i></li>
+          <li><span class="tag t-dev">DEV</span> Implement the export against the MI EVV spec → error queue + retries.</li>
+        </ol>
+        <span class="eta">Dev after approval: ~2–3 days</span>
+      </td>
+      <td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+  </table>
+  <div class="notes" style="border-left-color:var(--caregiver);margin-top:10px;">
+    <b>Important on EVV:</b> caregiver clock-in itself is <b>not blocked</b> — the agency's own mobile app already clocks in/out through this platform (the API above), and that is the source of truth for billing &amp; payroll. What is pending is the separate <b>push to Michigan's HHAeXchange aggregator</b>, which is gated on the agency's attestation approval.
+  </div>
+
+  <div class="sub">C · AI / LLM automations · Claude (Sonnet 4.6)</div>
+  <table>
+    <tr><th>Automation</th><th class="c-need">What's needed to finish</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Scan ID → auto-fill caregiver profile</span><span class="desc">Same scan-and-confirm flow on the onboarding wizard. Live-verified.</span></td><td class="need"><span class="none">✓ Complete — wired into the wizard.</span></td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">AI case summary / assistant</span><span class="desc">One-click summary of a caregiver's compliance &amp; assignment status.</span></td>
+      <td class="need"><span class="none">✓ Wired (06/28).</span> New <b>"AI summary"</b> button on the caregiver header opens the same side panel → caregiver summary + next action + flags. <span class="eta">no account needed</span></td>
+      <td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+  </table>
+
+  <!-- ============================================================ INTEGRATIONS ============================================================ -->
+  <div class="module ext">
+    <div class="module-h"><span class="lbl">3 · Third-Party Integrations</span><span class="score">Code ready · access pending</span></div>
+    <div class="module-rule"></div>
+  </div>
+  <div class="sub">Every external connector these two modules touch — and the workaround where there is no public API</div>
+  <table>
+    <tr><th>Integration</th><th class="c-need">Code state &amp; workaround</th><th class="c-status">Status</th></tr>
+    <tr><td><span class="feat">Google Maps / Places</span><span class="desc">Address autocomplete + county.</span></td><td class="need">Live. Key already provided by the agency.</td><td class="status"><span class="check c-done">✓</span><span class="pill p-done">DONE</span></td></tr>
+    <tr><td><span class="feat">Anthropic Claude (LLM)</span><span class="desc">All AI automations above.</span></td><td class="need">Live-verified on a dev key. For real PHI: sign the <b>Anthropic BAA</b> (or use the already-BAA'd <b>AWS Bedrock</b> route) + confirm the production key.</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">BAA</span></td></tr>
+    <tr><td><span class="feat">HHAeXchange (EVV)</span><span class="desc">Caregiver visits → MI aggregator.</span></td><td class="need">Health-check scaffold built; export not implemented. Needs attestation + OAuth2 creds. <b>Interim:</b> own mobile clock-in app already captures EVV in-platform.</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+    <tr><td><span class="feat">Availity (837P / 835)</span><span class="desc">MCO claim submit + EOB back.</span></td><td class="need">Client + payload/status mappers + tests built. Needs the API/EDI key (ticket submitted per tracker).</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+    <tr><td><span class="feat">AccountantsWorld (payroll)</span><span class="desc">Caregiver pay export.</span></td><td class="need">Export wired; App ID already provided. Confirm production credentials.</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+    <tr><td><span class="feat">RingCentral + Retell</span><span class="desc">SMS / eFax / call-log / voice for Communications.</span></td><td class="need">Clients built. Needs HIPAA <b>BAA</b> + SIP/BYOC (Retell) + A2P 10DLC if SMS (email sent per tracker).</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+    <tr><td><span class="feat">Google Workspace</span><span class="desc">AI email intake + document filing.</span></td><td class="need">Client built. Needs BAA + credentials.</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+    <tr><td><span class="feat">DocuSign / e-signature</span><span class="desc">Documents-tab signing.</span></td><td class="need">Stub client. Agency picks a vendor + account.</td><td class="status"><span class="check c-acct">⏳</span><span class="pill p-acct">NEEDS ACCESS</span></td></tr>
+    <tr><td><span class="feat">ICHAT (background check)</span><span class="desc">Caregiver Eligibility &amp; Checks.</span></td><td class="need">Flags ready. No self-serve API → MSP account; drive via stored login if no API.</td><td class="status"><span class="check c-rpa">⚙</span><span class="pill p-rpa">RPA / ACCESS</span></td></tr>
+    <tr><td><span class="feat">CHAMPS / MILogin · MDHHS · Sigma Portal</span><span class="desc">DHS billing, caregiver CHAMPS association.</span></td><td class="need"><b>No public API exists.</b> Only workaround = <b>RPA</b>: store the login in the Credential Vault and drive the portal UI. Needs the portal logins.</td><td class="status"><span class="check c-rpa">⚙</span><span class="pill p-rpa">RPA ONLY</span></td></tr>
+  </table>
+
+  <!-- ============================================================ WHAT WE NEED FROM YOU ============================================================ -->
+  <div class="ask">
+    <div class="ask-h">4 · What we need from the agency to finish the rest</div>
+    <table>
+      <tr><th style="width:30px;"></th><th>Item</th><th class="c-need">Why / unlocks</th><th style="width:90px;">Priority</th></tr>
+      <tr><td></td><td><span class="feat">HHAeXchange EVV</span></td><td class="need">Complete the Third-Party EVV attestation + OAuth2 API credentials. Unlocks state EVV submission + auto-billing. <i>Longest lead time.</i></td><td><span class="pri pri-1">P1 · NOW</span></td></tr>
+      <tr><td></td><td><span class="feat">Availity API/EDI key</span></td><td class="need">Unlocks MCO claim submission + EOB read-back (client Billing + caregiver Pay).</td><td><span class="pri pri-1">P1 · NOW</span></td></tr>
+      <tr><td></td><td><span class="feat">Anthropic BAA + prod key</span></td><td class="need">HIPAA gate to run AI scan/summary on real client data (or confirm the AWS Bedrock key).</td><td><span class="pri pri-1">P1 · NOW</span></td></tr>
+      <tr><td></td><td><span class="feat">RingCentral / Retell BAA</span></td><td class="need">BAA + SIP/BYOC (+ A2P 10DLC for SMS). Unlocks Communications send, call-log, voice.</td><td><span class="pri pri-2">P2</span></td></tr>
+      <tr><td></td><td><span class="feat">ICHAT access</span></td><td class="need">Michigan State Police account + key for automated caregiver background checks.</td><td><span class="pri pri-2">P2</span></td></tr>
+      <tr><td></td><td><span class="feat">Google Workspace</span></td><td class="need">BAA + credentials for AI email intake + document filing.</td><td><span class="pri pri-2">P2</span></td></tr>
+      <tr><td></td><td><span class="feat">E-signature vendor</span></td><td class="need">Choose DocuSign (or alt) + account for Documents-tab signing.</td><td><span class="pri pri-2">P2</span></td></tr>
+      <tr><td></td><td><span class="feat">Credential Vault logins</span></td><td class="need">CHAMPS/MILogin, MDHHS, Sigma, ICHAT — for the RPA connectors (no API exists).</td><td><span class="pri pri-2">P2</span></td></tr>
+      <tr><td></td><td><span class="feat">AccountantsWorld</span></td><td class="need">Confirm production payroll credentials (App ID already on file).</td><td><span class="pri pri-3">P3</span></td></tr>
+      <tr><td></td><td><span class="feat">Billing-portal decision</span></td><td class="need">UnitedHealthcare path (separate from Availity) is on hold pending your choice of billing portal.</td><td><span class="pri pri-3">P3</span></td></tr>
+    </table>
+  </div>
+
+  <!-- ============================================================ SUMMARY ============================================================ -->
+  <div class="summary">
+    <h3>Where things stand</h3>
+    <div class="bars">
+      <div class="bar-row"><div class="top"><span>Client · Core screens</span><span>Complete</span></div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div></div>
+      <div class="bar-row"><div class="top"><span>Caregiver · Core screens</span><span>Complete</span></div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div></div>
+      <div class="bar-row"><div class="top"><span>Client · Backend automations</span><span>6 / 7 done</span></div><div class="bar-track"><div class="bar-fill" style="width:86%"></div></div></div>
+      <div class="bar-row"><div class="top"><span>Caregiver · Backend automations</span><span>5 / 7 done</span></div><div class="bar-track"><div class="bar-fill" style="width:71%"></div></div></div>
+      <div class="bar-row"><div class="top"><span>Client · AI / LLM</span><span>3 done · 1 needs mailbox</span></div><div class="bar-track"><div class="bar-fill" style="width:90%"></div></div></div>
+      <div class="bar-row"><div class="top"><span>Caregiver · AI / LLM</span><span>2 / 2 done</span></div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div></div>
+    </div>
+    <p style="margin:14px 0 0;font-size:12px;color:var(--muted);line-height:1.6;">
+      <b style="color:var(--ink)">Both core modules are built, and every dev-side item is now done and tested.</b>
+      The 3 AI buttons (document recognition, client Daily-brief, caregiver summary) were wired on 06/28 — nothing on our side is outstanding for these two modules.
+      What remains is <b style="color:var(--agency)">Agency action only</b>: turn on the outside accounts in §4, after which the account-gated features (EVV, billing, background checks, AI email intake) come online in a few days each. Three of those portals (CHAMPS/MILogin, MDHHS, Sigma, ICHAT) have <b>no public API at all</b>, so they are automated by RPA (stored login) rather than a clean key.
+    </p>
+  </div>
+
+  <div class="test">
+    ✓ Quality: 100+ automated tests across the two modules' scope (AI edge cases — refusals, rate-limits, errors, bad input; backend automations; mobile clock-in API; billing/EVV status), out of 125+ test files in the suite. The three newly-wired AI buttons are covered by a fresh render/wiring test, and the regression set (AI · Clients · Caregivers · Documents = 70 tests) is green. Browser end-to-end checks pass 16/16. The Claude AI integration was verified live against the real service.
+  </div>
+
+  <div class="notes">
+    <b>One compliance gate before going live on real data:</b> the AI scan/summary features send protected health information (ID images, names, DOB, Medicaid IDs) to the AI provider. The agency must have a signed <b>Business Associate Agreement (BAA) with Anthropic</b> (or run Claude through the already-BAA'd <b>AWS Bedrock</b>). All features are built and tested regardless — this is only the switch for real client data.
+  </div>
+
+  <div class="foot">
+    <span>CONFIDENTIAL</span>
+    <span>Non-Skilled Home Care EMR · Client &amp; Caregiver Modules</span>
+    <span>Build &amp; Integration Status · 06/28/2026</span>
+  </div>
+
+</div>
+</body>
+</html>

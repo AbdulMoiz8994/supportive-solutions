@@ -1,0 +1,112 @@
+
+<!-- Popover Content Templates (Hidden) -->
+<template id="popover-right">
+  <div class="max-w-[300px]">
+    <div
+      class="relative z-20 rounded-t-xl border-b border-gray-200 px-5 py-3 dark:border-white/[0.03]"
+    >
+      <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">
+        Popover on Right
+      </h4>
+    </div>
+    <div class="p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris
+        facilisis congue justo nec facilisis.
+      </p>
+    </div>
+  </div>
+</template>
+
+<template id="popover-top">
+  <div class="max-w-[300px]">
+    <div
+      class="relative z-20 rounded-t-xl border-b border-gray-200 px-5 py-3 dark:border-white/[0.03]"
+    >
+      <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">
+        Popover on Top
+      </h4>
+    </div>
+    <div class="p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris
+        facilisis congue justo nec facilisis.
+      </p>
+    </div>
+  </div>
+</template>
+
+<template id="popover-bottom">
+  <div class="max-w-[300px]">
+    <div
+      class="relative z-20 rounded-t-xl border-b border-gray-200 px-5 py-3 dark:border-white/[0.03]"
+    >
+      <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">
+        Popover on Bottom
+      </h4>
+    </div>
+    <div class="p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris
+        facilisis congue justo nec facilisis.
+      </p>
+    </div>
+  </div>
+</template>
+
+<template id="popover-left">
+  <div class="max-w-[300px]">
+    <div
+      class="relative z-20 rounded-t-xl border-b border-gray-200 px-5 py-3 dark:border-white/[0.03]"
+    >
+      <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">
+        Popover on Left
+      </h4>
+    </div>
+    <div class="p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris
+        facilisis congue justo nec facilisis.
+      </p>
+    </div>
+  </div>
+</template>
+
+<!-- Example Usage -->
+<div class="flex flex-wrap gap-4 p-8">
+  <!-- Popover Right -->
+  <button
+    data-popover="#popover-right"
+    data-popover-placement="right"
+    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex rounded-lg px-4 py-3 text-sm font-medium text-white"
+  >
+    Popover on Right
+  </button>
+
+  <!-- Popover Top -->
+  <button
+    data-popover="#popover-top"
+    data-popover-placement="top"
+    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex rounded-lg px-4 py-3 text-sm font-medium text-white"
+  >
+    Popover on Top
+  </button>
+
+  <!-- Popover Bottom -->
+  <button
+    data-popover="#popover-bottom"
+    data-popover-placement="bottom"
+    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex rounded-lg px-4 py-3 text-sm font-medium text-white"
+  >
+    Popover on Bottom
+  </button>
+
+  <!-- Popover Left -->
+  <button
+    data-popover="#popover-left"
+    data-popover-placement="left"
+    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex rounded-lg px-4 py-3 text-sm font-medium text-white"
+  >
+    Popover on Left
+  </button>
+</div>
