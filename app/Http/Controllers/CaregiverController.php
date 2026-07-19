@@ -327,6 +327,36 @@ class CaregiverController extends Controller
     }
 
     /**
+     * Payroll P4 — toggle the manual "Set up in payroll portal ✓" checkoff.
+     * An AI agent or staff flips this after creating the caregiver in the
+     * external payroll portal (filing status + direct deposit). Stamps who + when.
+     */
+    public function markPayrollPortalSetup(Request $request, $id)
+    {
+        $caregiver = $this->findCaregiver($id);
+
+        if ($request->boolean('undo')) {
+            $caregiver->payroll_portal_setup_at = null;
+            $caregiver->payroll_portal_setup_by = null;
+            $caregiver->save();
+
+            $this->audit($caregiver, 'Field edited', 'Pay & Payroll › Payroll portal setup',
+                'Set up', 'Not set up', 'Payroll-portal setup checkoff cleared', 'App (web)');
+
+            return redirect()->back()->with('success', 'Payroll-portal setup checkoff cleared.');
+        }
+
+        $caregiver->payroll_portal_setup_at = now();
+        $caregiver->payroll_portal_setup_by = $request->user()->id;
+        $caregiver->save();
+
+        $this->audit($caregiver, 'Field edited', 'Pay & Payroll › Payroll portal setup',
+            'Not set up', 'Set up', 'Marked set up in external payroll portal (filing status + direct deposit)', 'App (web)');
+
+        return redirect()->back()->with('success', 'Marked as set up in the payroll portal.');
+    }
+
+    /**
      * Add a note (Notes & Activity tab).
      */
     public function storeNote(Request $request, $id)
