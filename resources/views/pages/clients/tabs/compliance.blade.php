@@ -1,4 +1,16 @@
 {{-- Compliance Forms --}}
+@php
+    // The HHAeXchange edit-panel below only persists when it is given a form
+    // action. $updateUrl is defined on the Demographics tab but not here, so
+    // without this line the panel falls back to "interactive-only" mode and the
+    // EVV status Save silently does nothing. Define it here so the Save writes
+    // to the client record (route + PUT match clients.update).
+    $updateUrl = $updateUrl ?? route('clients.update', $client->id);
+
+    // Whether this client is EVV-exempt (drives the honest read-only summary
+    // fields below instead of a hard-coded "N/A (exempt)" string).
+    $evvIsExempt = \Illuminate\Support\Str::contains(strtolower((string) ($client->evv_status ?? '')), 'exempt');
+@endphp
 <div x-show="activeTab === 'compliance'" x-cloak class="space-y-4">
 
     {{-- Process strip --}}
@@ -96,9 +108,10 @@
                     <x-clients.efield label="EVV status" name="evv_status" type="select"
                         :options="['Exempt — live-in caregiver (no clock-in / out)', 'Active — clock-in / out required', 'Not set']"
                         :selected="$client->evv_status" placeholder="Select EVV status" col="2" />
-                    <x-clients.efield label="Last HHAeXchange check"
-                        :value="now()->format('M j, Y · g:i A')" muted col="2" />
-                    <x-clients.efield label="Clocked vs authorized hours" value="N/A (exempt) — hours confirmed via compliance form" muted col="2" />
+                    <x-clients.efield label="Last updated"
+                        :value="$client->updated_at?->format('M j, Y · g:i A') ?? '—'" muted col="2" />
+                    <x-clients.efield label="Clocked vs authorized hours"
+                        :value="$evvIsExempt ? 'N/A (exempt) — hours confirmed via compliance form' : 'Tracked via HHAeXchange clock-in / out'" muted col="2" />
                 </div>
             </x-clients.edit-panel>
         </div>
