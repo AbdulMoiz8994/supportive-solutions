@@ -103,6 +103,7 @@ class BillingClaimAudit extends Model
         'override_reason', 'overridden_by', 'overridden_at',
         'issue_flags', 'last_action', 'activity_log',
         'created_by', 'updated_by',
+        'eligibility_verified_at', 'eligibility_verified_by', 'eligibility_note', 'submitted_by',
     ];
 
     protected $casts = [
@@ -116,6 +117,7 @@ class BillingClaimAudit extends Model
         'ai_extracted_amount' => 'decimal:2', 'ai_extracted_confidence' => 'decimal:2',
         'evv_exempt' => 'boolean', 'clock_in_verified' => 'boolean', 'clock_out_verified' => 'boolean', 'ai_review_required' => 'boolean',
         'submitted_at' => 'datetime', 'paid_at' => 'datetime', 'overridden_at' => 'datetime',
+        'eligibility_verified_at' => 'datetime',
         'availity_status_payload' => 'array', 'availity_status_checked_at' => 'datetime',
         'lifecycle_events' => 'array', 'documents' => 'array', 'issue_flags' => 'array', 'activity_log' => 'array',
     ];
@@ -181,9 +183,58 @@ class BillingClaimAudit extends Model
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
     public function updater() { return $this->belongsTo(User::class, 'updated_by'); }
     public function overrider() { return $this->belongsTo(User::class, 'overridden_by'); }
+    public function eligibilityVerifier() { return $this->belongsTo(User::class, 'eligibility_verified_by'); }
+    public function submitter() { return $this->belongsTo(User::class, 'submitted_by'); }
 
     public function isMich(): bool { return $this->program_type === self::PROGRAM_MICH; }
     public function isDhs(): bool { return $this->program_type === self::PROGRAM_DHS; }
+
+    // ── Manual billing flow (dropped-API replacement) ──────────────────────────
+
+    /** Eligibility confirmed active in the payer portal (its own step, pre-submit). */
+    public function isEligibilityVerified(): bool
+    {
+        return $this->eligibility_verified_at !== null;
+    }
+
+    /** CP-01 pre-billing gate is holding this claim (must be overridden first). */
+    public function isCpBlocked(): bool
+    {
+        return in_array($this->billing_status, [self::BILLING_BLOCKED, self::BILLING_NOT_READY], true)
+            || $this->claim_status === self::STATUS_ON_HOLD;
+    }
+
+    /** Claim has been submitted (or is further along: awaiting/paid/denied). */
+    public function isSubmittedOrBeyond(): bool
+    {
+        return in_array($this->billing_status, [
+            self::BILLING_SENT, self::BILLING_SUBMITTED, self::BILLING_PENDING_PAYMENT,
+            self::BILLING_PAID, self::BILLING_PARTIALLY_PAID, self::BILLING_DENIED,
+            self::BILLING_UNDERPAID, self::BILLING_VOIDED,
+        ], true) || in_array($this->claim_status, [
+            self::STATUS_SUBMITTED, self::STATUS_AWAITING_PAYMENT, self::STATUS_PAID, self::STATUS_REJECTED,
+        ], true) || $this->submitted_at !== null;
+    }
+
+    /** Pre-submission and not CP-01 blocked → the manual eligibility/submit steps apply. */
+    public function isAwaitingManualSubmission(): bool
+    {
+        return ! $this->isSubmittedOrBeyond() && ! $this->isCpBlocked();
+    }
+
+    /** Payment resolved — paid/confirmed or denied (no further EOB step). */
+    public function isPaidOrDenied(): bool
+    {
+        return in_array($this->billing_status, [
+            self::BILLING_PAID, self::BILLING_PARTIALLY_PAID, self::BILLING_DENIED,
+        ], true) || in_array($this->claim_status, [self::STATUS_PAID, self::STATUS_REJECTED], true);
+    }
+
+    /** Submitted and awaiting payment resolution → the "Record EOB" step applies. */
+    public function isAwaitingPaymentResolution(): bool
+    {
+        return $this->isSubmittedOrBeyond() && ! $this->isPaidOrDenied();
+    }
 
     public function isOutstanding(): bool
     {
@@ -375,6 +426,32 @@ class BillingClaimAudit extends Model
     public function submissionChannelLabel(): string
     {
         return (string) ($this->submission_channel ?: 'Manual');
+    }
+
+    /** The manual submission door for this claim (Availity/clearinghouse dropped). */
+    public function channelDoorLabel(): string
+    {
+        if ($this->isDhs()) {
+            return 'DHS Home Help → ASW (email invoice)';
+        }
+        if ($this->program_type === 'DAAA') {
+            return 'Compass portal (DAAA)';
+        }
+
+        return 'Office Ally portal';
+    }
+
+    /**
+     * Channel column display: once manually submitted, show what the operator
+     * recorded; otherwise show the manual door this claim goes out through.
+     */
+    public function displayChannel(): string
+    {
+        if ($this->submitted_by && filled($this->submission_channel)) {
+            return (string) $this->submission_channel;
+        }
+
+        return $this->channelDoorLabel();
     }
 
     public function usesAvaility(): bool
