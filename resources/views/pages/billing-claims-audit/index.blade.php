@@ -42,22 +42,9 @@
                class="inline-flex items-center px-4 py-2 text-[12px] font-semibold text-[#475569] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc] transition">
                 Aging report
             </a>
-            @can('runActions', \App\Models\BillingClaimAudit::class)
-            <form action="{{ route('billing-claims-audit.refresh-availity-status') }}" method="POST" class="inline">
-                @csrf
-                <input type="hidden" name="period" value="{{ $period->format('Y-m') }}">
-                <button type="submit" class="inline-flex items-center px-4 py-2 text-[12px] font-semibold text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe] rounded-xl hover:bg-[#dbeafe] transition">
-                    Refresh Availity status
-                </button>
-            </form>
-            <form action="{{ route('billing-claims-audit.generate-submit') }}" method="POST" class="inline">
-                @csrf
-                <input type="hidden" name="period" value="{{ $period->format('Y-m') }}">
-                <button type="submit" class="inline-flex items-center px-4 py-2.5 text-[12px] font-semibold text-white bg-[#2563eb] rounded-xl hover:bg-[#1d4ed8] transition shadow-sm">
-                    Generate & submit now
-                </button>
-            </form>
-            @endcan
+            <span class="inline-flex items-center px-3 py-2 text-[11px] font-semibold text-[#2563eb] bg-[#eff6ff] border border-[#bfdbfe] rounded-xl">
+                Manual billing — submit in each payer portal, then mark it here
+            </span>
         </div>
     </div>
 
@@ -165,22 +152,20 @@
             <div class="flex items-start gap-3">
                 <span class="mt-0.5 w-2 h-2 rounded-full bg-[#10b981] shrink-0"></span>
                 <div>
-                    <p class="text-[13px] font-semibold text-[#065f46]">Auto-billing is on</p>
+                    <p class="text-[13px] font-semibold text-[#065f46]">Manual billing — per claim</p>
                     <p class="text-[12px] text-[#047857] mt-0.5">
                         @if($summary['eligible_count'] === 0)
-                            No clients with clean visits and valid authorization found for this cycle yet.
+                            No clients with clean visits and valid authorization ready to bill this cycle yet.
                         @else
-                            {{ $summary['auto_generated_count'] }} of {{ $summary['eligible_count'] }} eligible bills generated &amp; submitted automatically this cycle.
+                            {{ $summary['eligible_count'] }} ready to bill — verify eligibility in the payer portal, submit (Office Ally / ASW email / Compass), then mark each submitted here.
                         @endif
                         @if($summary['on_hold_count'] > 0)
-                            {{ $summary['on_hold_count'] }} held by the gate below.
+                            {{ $summary['on_hold_count'] }} held by the CP-01 gate below.
                         @endif
                     </p>
                 </div>
             </div>
-            @if($summary['auto_billing_on'])
-                <x-ui.pill variant="green" size="xs">Auto · running</x-ui.pill>
-            @endif
+            <x-ui.pill variant="green" size="xs">Manual</x-ui.pill>
         </div>
         <div class="flex items-start justify-between gap-3 p-4 rounded-2xl border border-[#fde68a] bg-[#fffbeb] {{ $summary['on_hold_count'] === 0 ? 'opacity-60' : '' }}">
             <div class="flex items-start gap-3">
@@ -316,21 +301,9 @@
                             <td class="px-4 py-3.5 text-[13px] text-[#475569]">${{ number_format($claim->hourly_rate, 2) }}/hr</td>
                             <td class="px-4 py-3.5 text-[13px] font-semibold text-[#0f172a]">${{ number_format($claim->total_amount, 2) }}</td>
                             <td class="px-4 py-3.5">
-                                @php $channelUrl = $claim->submissionChannelUrl(); @endphp
-                                @if($channelUrl)
-                                    <a href="{{ $claim->usesSigmaPortal() ? route('billing-claims-audit.sigma-portal', $claim) : $channelUrl }}"
-                                       @if(!$claim->usesSigmaPortal()) target="_blank" rel="noopener" @endif
-                                       class="text-[13px] text-[#2563eb] font-medium hover:underline">
-                                        {{ $claim->submissionChannelLabel() }}
-                                    </a>
-                                @else
-                                    <div class="text-[13px] text-[#475569]">{{ $claim->submissionChannelLabel() }}</div>
-                                @endif
+                                <div class="text-[13px] text-[#475569] font-medium">{{ $claim->displayChannel() }}</div>
                                 @if($claim->channelDisplaySubtext())
                                     <div class="text-[11px] text-[#94a3b8]">{{ $claim->channelDisplaySubtext() }}</div>
-                                @endif
-                                @if($claim->usesAvaility() && $claim->availity_reference_id)
-                                    <div class="text-[10px] text-[#2563eb] mt-0.5">Ref: {{ $claim->availity_reference_id }}</div>
                                 @endif
                             </td>
                             <td class="px-4 py-3.5">
@@ -341,20 +314,111 @@
                                 @if($claim->authorization_status)
                                     <div class="text-[10px] text-[#94a3b8] mt-1">Auth: {{ ucwords(str_replace('_', ' ', $claim->authorization_status)) }}</div>
                                 @endif
+                                @if($claim->isEligibilityVerified())
+                                    <div class="text-[10px] text-[#067647] mt-0.5">Eligibility ✓</div>
+                                @endif
                                 @if($claim->hasIssueFlags())
                                     <div class="text-[10px] text-[#f59e0b] mt-0.5">{{ implode(', ', array_slice($claim->issueFlagLabels(), 0, 2)) }}</div>
                                 @endif
                             </td>
                             <td class="px-4 py-3.5 text-right">
-                                @if($claim->hasDownloadablePdf())
-                                    <a href="{{ route('billing-claims-audit.pdf.download', $claim) }}" class="text-[12px] font-semibold text-[#2563eb] hover:underline">
-                                        View PDF &gt;
-                                    </a>
-                                @else
-                                    <a href="{{ route('billing-claims-audit.show', $claim) }}" class="text-[12px] font-semibold text-[#2563eb] hover:underline">
-                                        View claim &gt;
-                                    </a>
-                                @endif
+                                <div x-data="{ submitOpen: false, eobOpen: false }" class="flex items-center justify-end gap-2">
+                                    @if($claim->isAwaitingManualSubmission())
+                                        @if(! $claim->isEligibilityVerified())
+                                            <form method="POST" action="{{ route('billing-claims-audit.verify-eligibility', $claim) }}" class="inline-flex">
+                                                @csrf
+                                                <button type="submit" class="inline-flex items-center h-7 px-2.5 text-[11px] font-semibold text-[#2563eb] bg-white border border-[#dbe6ff] rounded-lg hover:bg-[#eff4ff] transition">Verify eligibility</button>
+                                            </form>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#067647]" title="Eligibility verified by {{ $claim->eligibilityVerifier?->name }}{{ $claim->eligibility_verified_at ? ' on '.$claim->eligibility_verified_at->format('M j, Y') : '' }}">✓ Eligibility</span>
+                                            <button type="button" @click="submitOpen = true" class="inline-flex items-center h-7 px-2.5 text-[11px] font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-[#1d4ed8] transition">Mark submitted</button>
+                                        @endif
+                                    @elseif($claim->isCpBlocked())
+                                        <a href="{{ route('billing-claims-audit.show', $claim) }}" class="text-[11px] font-semibold text-[#b45309] hover:underline">Held (CP-01) &rsaquo;</a>
+                                    @elseif($claim->isAwaitingPaymentResolution())
+                                        <button type="button" @click="eobOpen = true" class="inline-flex items-center h-7 px-2.5 text-[11px] font-semibold text-[#2563eb] bg-white border border-[#dbe6ff] rounded-lg hover:bg-[#eff4ff] transition">Record EOB</button>
+                                    @endif
+                                    <a href="{{ route('billing-claims-audit.show', $claim) }}" class="text-[12px] font-semibold text-[#2563eb] hover:underline whitespace-nowrap">View &rsaquo;</a>
+
+                                    {{-- Manual "Mark submitted" modal --}}
+                                    <div x-show="submitOpen" x-cloak @keydown.escape.window="submitOpen = false" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                                        <div class="absolute inset-0 bg-black/40" @click="submitOpen = false"></div>
+                                        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-5 text-left">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <h3 class="text-[16px] font-bold text-[#0f172a]">Mark submitted — {{ $claim->client?->first_name }} {{ $claim->client?->last_name }}</h3>
+                                                <button type="button" @click="submitOpen = false" class="text-[#94a3b8] hover:text-[#475569] text-[18px] leading-none">&times;</button>
+                                            </div>
+                                            <p class="text-[12px] text-[#64748b] mb-4">Record the confirmation after you submit in the payer portal (Office Ally), email the invoice (DHS &rarr; ASW), or key it into Compass (DAAA).</p>
+                                            <form method="POST" action="{{ route('billing-claims-audit.mark-submitted', $claim) }}" class="space-y-3">
+                                                @csrf
+                                                <div>
+                                                    <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Channel</label>
+                                                    <input type="text" name="submission_channel" value="{{ $claim->channelDoorLabel() }}" required class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none">
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Confirmation / claim #</label>
+                                                        <input type="text" name="claim_number" value="{{ $claim->claim_number }}" required placeholder="e.g. OA-482193" class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Submitted on</label>
+                                                        <input type="date" name="submitted_on" value="{{ now()->format('Y-m-d') }}" required class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none">
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-end gap-2 pt-1">
+                                                    <button type="button" @click="submitOpen = false" class="px-3.5 py-2 text-[12px] font-semibold text-[#475569] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc]">Cancel</button>
+                                                    <button type="submit" class="px-3.5 py-2 text-[12px] font-semibold text-white bg-[#2563eb] rounded-xl hover:bg-[#1d4ed8]">Mark submitted</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    {{-- Record EOB / payment modal (paid → confirmed, denial → rejected/rework) --}}
+                                    <div x-show="eobOpen" x-cloak @keydown.escape.window="eobOpen = false" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                                        <div class="absolute inset-0 bg-black/40" @click="eobOpen = false"></div>
+                                        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-5 text-left" x-data="{ denied: false }">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <h3 class="text-[16px] font-bold text-[#0f172a]">Record EOB / payment — {{ $claim->client?->first_name }} {{ $claim->client?->last_name }}</h3>
+                                                <button type="button" @click="eobOpen = false" class="text-[#94a3b8] hover:text-[#475569] text-[18px] leading-none">&times;</button>
+                                            </div>
+                                            <p class="text-[12px] text-[#64748b] mb-4">Post the remittance. A paid amount confirms the claim; entering a denial routes it to Rejected / rework with the reason attached.</p>
+                                            <form method="POST" action="{{ route('billing-claims-audit.record-eob', $claim) }}" enctype="multipart/form-data" class="space-y-3">
+                                                @csrf
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Paid amount ($)</label>
+                                                        <input type="number" step="0.01" min="0" name="paid_amount" value="{{ number_format((float) $claim->total_amount, 2, '.', '') }}" required class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Payment date</label>
+                                                        <input type="date" name="payment_date" value="{{ now()->format('Y-m-d') }}" class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] outline-none">
+                                                    </div>
+                                                </div>
+                                                <label class="flex items-center gap-2 text-[12px] font-semibold text-[#b42318] cursor-pointer">
+                                                    <input type="checkbox" x-model="denied"> Denied / short-paid
+                                                </label>
+                                                <div x-show="denied" x-cloak class="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Denied amount ($)</label>
+                                                        <input type="number" step="0.01" min="0" name="denial_amount" class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl outline-none">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">Reason code</label>
+                                                        <input type="text" name="denial_reason" placeholder="e.g. CO-197 no auth" class="w-full px-3 py-2 text-[13px] border border-[#e2e8f0] rounded-xl outline-none">
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[11px] font-semibold text-[#64748b] uppercase mb-1">EOB / remittance (optional)</label>
+                                                    <input type="file" name="eob_document" accept=".pdf,.png,.jpg,.jpeg" class="block w-full text-[12px] text-[#475569] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:font-semibold file:bg-[#eff4ff] file:text-[#2563eb]">
+                                                </div>
+                                                <div class="flex justify-end gap-2 pt-1">
+                                                    <button type="button" @click="eobOpen = false" class="px-3.5 py-2 text-[12px] font-semibold text-[#475569] bg-white border border-[#e2e8f0] rounded-xl hover:bg-[#f8fafc]">Cancel</button>
+                                                    <button type="submit" class="px-3.5 py-2 text-[12px] font-semibold text-white bg-[#2563eb] rounded-xl hover:bg-[#1d4ed8]">Save EOB</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
