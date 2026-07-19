@@ -27,6 +27,12 @@ class PayrollRecordWorkflowService
             $record->caregiver_type = $this->eligibilityService->resolveCaregiverType($record);
         }
 
+        // P5 — supplemental/reversal records carry their own captured amounts and
+        // status; never recompute them from the compliance form / grace window.
+        if (! $record->isRegular()) {
+            return $record;
+        }
+
         if ($record->isPaid()) {
             return $record;
         }
