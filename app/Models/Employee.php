@@ -229,7 +229,7 @@ class Employee extends Model
         return $this->morphMany(Document::class, 'documentable');
     }
 
-    // ── Caregiver module relationships ─────────────────────
+    // ── Caregiver module relationships ──────────────────────────────
 
     public function backgroundChecks()
     {
