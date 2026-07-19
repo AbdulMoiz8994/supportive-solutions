@@ -58,6 +58,7 @@ class Employee extends Model
         'attestation_status', 'years_experience', 'prior_experience', 'services',
         'hourly_wage', 'lives_with_client', 'live_in', 'evv_exempt', 'notes',
         'activated_at', 'pay_eligibility_start', 'attestation_expires_at', 'application_signed_at',
+        'payroll_portal_setup_at', 'payroll_portal_setup_by',
         'metadata',
         'aw_employee_id', 'aw_setup_status', 'aw_setup_error', 'aw_setup_http_status', 'aw_setup_error_context', 'aw_setup_payload', 'aw_setup_attempted_at',
     ];
@@ -86,6 +87,7 @@ class Employee extends Model
         'pay_eligibility_start'   => 'date',
         'attestation_expires_at'  => 'date',
         'application_signed_at'   => 'date',
+        'payroll_portal_setup_at' => 'datetime',
         'metadata'                => 'array',
         'aw_setup_payload'        => 'encrypted:array',
         'aw_setup_attempted_at'   => 'datetime',
@@ -195,6 +197,18 @@ class Employee extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Who checked off "Set up in payroll portal" (Payroll P4 — manual). */
+    public function payrollPortalSetupByUser()
+    {
+        return $this->belongsTo(User::class, 'payroll_portal_setup_by');
+    }
+
+    /** Whether this caregiver has been set up in the external payroll portal. */
+    public function isPayrollPortalSetup(): bool
+    {
+        return $this->payroll_portal_setup_at !== null;
+    }
+
     public function statusRecord()
     {
         return $this->belongsTo(Status::class, 'status_id');
@@ -215,7 +229,7 @@ class Employee extends Model
         return $this->morphMany(Document::class, 'documentable');
     }
 
-    // ── Caregiver module relationships ──────────────────────────────
+    // ── Caregiver module relationships ─────────────────────
 
     public function backgroundChecks()
     {
