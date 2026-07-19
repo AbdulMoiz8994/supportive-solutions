@@ -18,9 +18,18 @@ class PayRecord extends Model
     public const STATUS_LATE_ROLLED = 'Late - rolled';
     public const STATUS_HELD = 'Held - review';
     public const STATUS_PAID = 'Paid';
+    public const STATUS_REVERSAL = 'Reversal';
 
     public const CAREGIVER_FAMILY = 'family';
     public const CAREGIVER_AGENCY = 'agency';
+
+    // P5 — corrections / reversals / supplemental pay
+    public const RECORD_REGULAR = 'regular';
+    public const RECORD_SUPPLEMENTAL = 'supplemental';
+    public const RECORD_REVERSAL = 'reversal';
+
+    public const RECOVERY_REQUESTED = 'Requested';
+    public const RECOVERY_RECOVERED = 'Recovered';
 
     protected $fillable = [
         'organization_id',
@@ -34,6 +43,11 @@ class PayRecord extends Model
         'program_tag',
         'hold_reason',
         'exported_at',
+        'record_type',
+        'adjustment_reason',
+        'service_dates',
+        'recovery_status',
+        'parent_pay_record_id',
     ];
 
     protected $guarded = [
@@ -58,11 +72,29 @@ class PayRecord extends Model
         'verified_at'      => 'datetime',
         'locked_at'        => 'datetime',
         'exported_at'      => 'datetime',
+        'processed_payroll_at' => 'datetime',
         'hours'            => 'decimal:2',
         'rate'             => 'decimal:2',
         'gross'            => 'decimal:2',
+        'net'              => 'decimal:2',
+        'recovery_amount'  => 'decimal:2',
         'lifecycle_events' => 'array',
     ];
+
+    public function isRegular(): bool
+    {
+        return ($this->record_type ?? self::RECORD_REGULAR) === self::RECORD_REGULAR;
+    }
+
+    public function isSupplemental(): bool
+    {
+        return $this->record_type === self::RECORD_SUPPLEMENTAL;
+    }
+
+    public function isReversal(): bool
+    {
+        return $this->record_type === self::RECORD_REVERSAL;
+    }
 
     public static function statuses(): array
     {
@@ -168,5 +200,22 @@ class PayRecord extends Model
     public function lockedByUser()
     {
         return $this->belongsTo(User::class, 'locked_by');
+    }
+
+    public function processedByUser()
+    {
+        return $this->belongsTo(User::class, 'processed_by');
+    }
+
+    /** The original run this supplemental/reversal adjusts (P5). */
+    public function parentPayRecord()
+    {
+        return $this->belongsTo(PayRecord::class, 'parent_pay_record_id');
+    }
+
+    /** Supplemental/reversal records attached to this original run (P5). */
+    public function adjustments()
+    {
+        return $this->hasMany(PayRecord::class, 'parent_pay_record_id');
     }
 }
