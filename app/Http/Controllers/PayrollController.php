@@ -189,6 +189,258 @@ class PayrollController extends Controller
     }
 
     /**
+     * Manual payroll: mark that this caregiver's pay has been processed in the
+     * external payroll portal (by a person or an AI agent). Stamps who + when.
+     */
+    public function markProcessed(Request $request, PayRecord $payRecord)
+    {
+        if ($payRecord->isImmutable()) {
+            return back()->with('warning', 'Paid or locked records cannot be changed.');
+        }
+
+        $payRecord->processed_payroll_at = now();
+        $payRecord->processed_by = $request->user()->id;
+
+        $events = $payRecord->lifecycle_events ?? [];
+        $events[] = [
+            'event' => 'processed_payroll',
+            'by'    => $request->user()->name,
+            'at'    => now()->toIso8601String(),
+        ];
+        $payRecord->lifecycle_events = $events;
+        $payRecord->saveQuietly();
+
+        return back()->with('success', 'Marked as processed in the payroll portal.');
+    }
+
+    /**
+     * Manual payroll: attach/record the pay stub for a caregiver. The stub is the
+     * source of truth for pay date + gross + net (AI-read on the front end, then
+     * confirmed here). Marks the record Paid once the pay date has arrived.
+     */
+    public function savePayStub(Request $request, PayRecord $payRecord)
+    {
+        if ($payRecord->isImmutable()) {
+            return back()->with('warning', 'Paid or locked records cannot be changed.');
+        }
+
+        $validated = $request->validate([
+            'pay_date'    => ['required', 'date'],
+            'gross'       => ['required', 'numeric', 'min:0'],
+            'net'         => ['required', 'numeric', 'min:0'],
+            'hours'       => ['nullable', 'numeric', 'min:0'],
+            'program_tag' => ['nullable', 'string', 'max:20'],
+            'stub'        => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg', 'max:10240'],
+        ]);
+
+        $payRecord->paid_date = $validated['pay_date'];
+        $payRecord->gross = round((float) $validated['gross'], 2);
+        $payRecord->net = round((float) $validated['net'], 2);
+        if (isset($validated['hours'])) {
+            $payRecord->hours = round((float) $validated['hours'], 2);
+        }
+        if (! empty($validated['program_tag'])) {
+            $payRecord->program_tag = $validated['program_tag'];
+        }
+
+        if ($request->hasFile('stub')) {
+            $dir = storage_path('app/payroll/stubs');
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0775, true);
+            }
+            $file = $request->file('stub');
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $filename = 'stub-'.$payRecord->id.'-'.now()->format('YmdHis').'.'.$ext;
+            $file->move($dir, $filename);
+            $payRecord->stub_path = 'payroll/stubs/'.$filename;
+        }
+
+        $payDate = \Illuminate\Support\Carbon::parse($validated['pay_date']);
+        $paidNow = $payDate->startOfDay()->lte(now()->startOfDay());
+        if ($paidNow) {
+            $payRecord->status = PayRecord::STATUS_PAID;
+        }
+
+        $events = $payRecord->lifecycle_events ?? [];
+        $events[] = [
+            'event'    => 'pay_stub_saved',
+            'by'       => $request->user()->name,
+            'at'       => now()->toIso8601String(),
+            'pay_date' => $payDate->toDateString(),
+            'gross'    => (float) $payRecord->gross,
+            'net'      => (float) $payRecord->net,
+        ];
+        $payRecord->lifecycle_events = $events;
+        $payRecord->saveQuietly();
+
+        return back()->with('success', $paidNow
+            ? 'Pay stub saved — caregiver marked Paid.'
+            : 'Pay stub saved — will mark Paid on '.$payDate->format('M j, Y').'.');
+    }
+
+    /**
+     * Payroll P5 — record a SUPPLEMENTAL (additional) payment on an already-run
+     * period: a backdated/newly-discovered case or an underpayment. Creates a
+     * second pay record for the same caregiver + period, with its own service
+     * dates, reason, amount and (optional) stub. Never blocks — if the original
+     * run is still in progress, it records the supplemental and flags a heads-up.
+     */
+    public function addSupplemental(Request $request, PayRecord $payRecord)
+    {
+        $validated = $request->validate([
+            'pay_date'      => ['required', 'date'],
+            'gross'         => ['required', 'numeric', 'min:0'],
+            'net'           => ['required', 'numeric', 'min:0'],
+            'hours'         => ['nullable', 'numeric', 'min:0'],
+            'service_dates' => ['nullable', 'string', 'max:255'],
+            'reason'        => ['required', 'string', 'max:1000'],
+            'stub'          => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg', 'max:10240'],
+        ]);
+
+        $origin = $payRecord->isRegular() ? $payRecord : ($payRecord->parentPayRecord ?? $payRecord);
+
+        // Heads-up (NOT a block): is a regular run for this caregiver + period still open?
+        $runInProgress = PayRecord::query()
+            ->where('employee_id', $origin->employee_id)
+            ->where('period_key', $origin->period_key)
+            ->where('record_type', PayRecord::RECORD_REGULAR)
+            ->where('status', '!=', PayRecord::STATUS_PAID)
+            ->exists();
+
+        $supp = new PayRecord();
+        $supp->organization_id    = $origin->organization_id;
+        $supp->employee_id        = $origin->employee_id;
+        $supp->client_id          = $origin->client_id;
+        $supp->period             = $origin->period;
+        $supp->period_key         = $origin->period_key;
+        $supp->program_tag        = $origin->program_tag;
+        $supp->caregiver_type     = $origin->caregiver_type;
+        $supp->compliance_form_id = $origin->compliance_form_id;
+        $supp->rate               = $origin->rate;
+        $supp->record_type        = PayRecord::RECORD_SUPPLEMENTAL;
+        $supp->parent_pay_record_id = $origin->id;
+        $supp->adjustment_reason  = $validated['reason'];
+        $supp->service_dates      = $validated['service_dates'] ?? null;
+        $supp->gross              = round((float) $validated['gross'], 2);
+        $supp->net                = round((float) $validated['net'], 2);
+        $supp->hours              = isset($validated['hours']) ? round((float) $validated['hours'], 2) : null;
+        $supp->hours_source       = 'supplemental';
+
+        $payDate = \Illuminate\Support\Carbon::parse($validated['pay_date']);
+        $supp->paid_date = $validated['pay_date'];
+        $paidNow = $payDate->startOfDay()->lte(now()->startOfDay());
+        $supp->status = $paidNow ? PayRecord::STATUS_PAID : PayRecord::STATUS_READY;
+
+        if ($request->hasFile('stub')) {
+            $dir = storage_path('app/payroll/stubs');
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0775, true);
+            }
+            $file = $request->file('stub');
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'pdf');
+            $filename = 'stub-supp-'.now()->format('YmdHis').'-'.$origin->id.'.'.$ext;
+            $file->move($dir, $filename);
+            $supp->stub_path = 'payroll/stubs/'.$filename;
+        }
+
+        $supp->lifecycle_events = [[
+            'event'         => 'supplemental_created',
+            'by'            => $request->user()->name,
+            'at'            => now()->toIso8601String(),
+            'gross'         => (float) $supp->gross,
+            'service_dates' => $supp->service_dates,
+            'reason'        => $supp->adjustment_reason,
+            'parent_id'     => $origin->id,
+        ]];
+        $supp->saveQuietly();
+
+        $tail = $paidNow
+            ? 'marked Paid.'
+            : 'will mark Paid on '.$payDate->format('M j, Y').'.';
+
+        if ($runInProgress) {
+            return back()->with('warning',
+                'Heads up: the regular payroll run for this caregiver in '.$origin->period.' is still in progress. '.
+                'The supplemental payment ($'.number_format((float) $supp->gross, 2).') was still recorded — '.$tail);
+        }
+
+        return back()->with('success', 'Supplemental payment ($'.number_format((float) $supp->gross, 2).') recorded — '.$tail);
+    }
+
+    /**
+     * Payroll P5 — record a REVERSAL / clawback of an overpayment. Creates a
+     * tracking record (amount to recover + reason) in the Requested state; it is
+     * marked Recovered later via markReversalRecovered().
+     */
+    public function addReversal(Request $request, PayRecord $payRecord)
+    {
+        $validated = $request->validate([
+            'recovery_amount' => ['required', 'numeric', 'min:0.01'],
+            'reason'          => ['required', 'string', 'max:1000'],
+        ]);
+
+        $origin = $payRecord->isRegular() ? $payRecord : ($payRecord->parentPayRecord ?? $payRecord);
+
+        $rev = new PayRecord();
+        $rev->organization_id    = $origin->organization_id;
+        $rev->employee_id        = $origin->employee_id;
+        $rev->client_id          = $origin->client_id;
+        $rev->period             = $origin->period;
+        $rev->period_key         = $origin->period_key;
+        $rev->program_tag        = $origin->program_tag;
+        $rev->caregiver_type     = $origin->caregiver_type;
+        $rev->rate               = $origin->rate;
+        $rev->record_type        = PayRecord::RECORD_REVERSAL;
+        $rev->parent_pay_record_id = $origin->id;
+        $rev->recovery_amount    = round((float) $validated['recovery_amount'], 2);
+        $rev->recovery_status    = PayRecord::RECOVERY_REQUESTED;
+        $rev->adjustment_reason  = $validated['reason'];
+        $rev->status             = PayRecord::STATUS_REVERSAL;
+
+        $rev->lifecycle_events = [[
+            'event'  => 'reversal_requested',
+            'by'     => $request->user()->name,
+            'at'     => now()->toIso8601String(),
+            'amount' => (float) $rev->recovery_amount,
+            'reason' => $rev->adjustment_reason,
+            'parent_id' => $origin->id,
+        ]];
+        $rev->saveQuietly();
+
+        return back()->with('success',
+            'Reversal requested — $'.number_format((float) $rev->recovery_amount, 2).' to recover from a prior overpayment.');
+    }
+
+    /**
+     * Payroll P5 — mark a reversal record as Recovered (funds clawed back).
+     */
+    public function markReversalRecovered(Request $request, PayRecord $payRecord)
+    {
+        if (! $payRecord->isReversal()) {
+            return back()->with('warning', 'This is not a reversal record.');
+        }
+
+        if ($payRecord->recovery_status === PayRecord::RECOVERY_RECOVERED) {
+            return back()->with('warning', 'This reversal is already marked recovered.');
+        }
+
+        $payRecord->recovery_status = PayRecord::RECOVERY_RECOVERED;
+
+        $events = $payRecord->lifecycle_events ?? [];
+        $events[] = [
+            'event'  => 'reversal_recovered',
+            'by'     => $request->user()->name,
+            'at'     => now()->toIso8601String(),
+            'amount' => (float) $payRecord->recovery_amount,
+        ];
+        $payRecord->lifecycle_events = $events;
+        $payRecord->saveQuietly();
+
+        return back()->with('success',
+            'Reversal marked recovered — $'.number_format((float) $payRecord->recovery_amount, 2).' clawed back.');
+    }
+
+    /**
      * Show all batches pending approval.
      */
     public function batchQueue(Request $request)
