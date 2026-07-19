@@ -77,16 +77,42 @@
 {{-- Pay setup --}}
 <div class="bg-[#eff6ff] rounded-[20px] border border-blue-100/50 p-6">
     <h3 class="text-[15px] font-bold text-[#1e293b] mb-5">Pay Setup</h3>
+
+    {{-- Payroll P4 — manual "Set up in payroll portal" checkoff --}}
+    @php $portalSet = $c->payroll_portal_setup_at !== null; @endphp
+    <div class="mb-5 rounded-2xl border p-4 {{ $portalSet ? 'bg-green-50/60 border-green-200' : 'bg-white border-[#e2e8f0]' }}">
+        <div class="flex items-start justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <span class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 {{ $portalSet ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div>
+                    <h4 class="text-[13px] font-bold {{ $portalSet ? 'text-green-700' : 'text-[#1e293b]' }}">Set up in payroll portal {{ $portalSet ? '✓' : '' }}</h4>
+                    @if($portalSet)
+                        <p class="text-[11px] text-green-700/80 mt-0.5">Marked by {{ $c->payrollPortalSetupByUser?->name ?? 'staff' }} on {{ $c->payroll_portal_setup_at->format('M j, Y · g:i A') }} — filing status + direct deposit entered in the external payroll portal.</p>
+                    @else
+                        <p class="text-[11px] text-[#64748b] mt-0.5">Not yet set up. An AI agent or staff creates this caregiver in the external payroll portal (filing status + direct deposit), then checks this off here.</p>
+                    @endif
+                </div>
+            </div>
+            <form method="POST" action="{{ route('caregivers.payroll-portal-setup', $c->id) }}" class="shrink-0">
+                @csrf
+                @if($portalSet)
+                    <input type="hidden" name="undo" value="1">
+                    <button type="submit" class="text-[11px] font-semibold text-[#64748b] hover:text-[#475569] underline">Undo</button>
+                @else
+                    <button type="submit" class="inline-flex items-center h-8 px-3 text-[12px] font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-[#1d4ed8] whitespace-nowrap">Mark set up ✓</button>
+                @endif
+            </form>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         @include('pages.caregivers.tabs._kv', ['label'=>'Hourly Wage','value'=>'$'.number_format((float)($c->hourly_wage ?? 0),2).' / hour'])
         @include('pages.caregivers.tabs._kv', ['label'=>'Classification','value'=>$c->classification])
         @include('pages.caregivers.tabs._kv', ['label'=>'Pay Schedule','value'=>$c->pay_schedule])
         @include('pages.caregivers.tabs._kv', ['label'=>'Payroll System','value'=>$c->payroll_system])
-        @if($c->isAccountantsWorldSynced())
-            @include('pages.caregivers.tabs._kv', ['label'=>'AccountantsWorld','value'=>'Synced'.($c->aw_employee_id ? ' · ID '.$c->aw_employee_id : '')])
-        @elseif($c->isAwaitingAccountantsWorldSetup())
-            @include('pages.caregivers.tabs._kv', ['label'=>'AccountantsWorld','value'=>'Setup failed — retry from Payroll Approval Queue'])
-        @endif
+        @include('pages.caregivers.tabs._kv', ['label'=>'Payroll Portal Setup','value'=> $c->payroll_portal_setup_at ? 'Set up ✓ · '.$c->payroll_portal_setup_at->format('M j, Y') : 'Not set up'])
         @include('pages.caregivers.tabs._kv', ['label'=>'W-4 Filing Status','value'=>$c->w4_filing_status])
         @include('pages.caregivers.tabs._kv', ['label'=>'Direct Deposit','value'=>$c->direct_deposit_last4 ? '•••• '.$c->direct_deposit_last4.' · Routing on file' : '—'])
         @include('pages.caregivers.tabs._kv', ['label'=>'Insurance','value'=>$c->insurance_coverage])
