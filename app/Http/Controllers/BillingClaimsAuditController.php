@@ -259,6 +259,112 @@ class BillingClaimsAuditController extends Controller
             ->with('success', 'Billing block overridden — record marked ready to bill.');
     }
 
+    /**
+     * Manual billing — Step: Eligibility verified. The agent/staff confirms
+     * coverage is active in the payer portal (its own step, before submit).
+     * Stamps who + when. Never changes an amount.
+     */
+    public function verifyEligibility(Request $request, BillingClaimAudit $billing_claims_audit)
+    {
+        $this->authorize('update', $billing_claims_audit);
+
+        if ($billing_claims_audit->isSubmittedOrBeyond()) {
+            return back()->with('warning', 'This claim has already been submitted.');
+        }
+
+        $validated = $request->validate([
+            'eligibility_note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $billing_claims_audit->eligibility_verified_at = now();
+        $billing_claims_audit->eligibility_verified_by = auth()->id();
+        if (! empty($validated['eligibility_note'])) {
+            $billing_claims_audit->eligibility_note = $validated['eligibility_note'];
+        }
+        $billing_claims_audit->updated_by = auth()->id();
+
+        $this->appendBillingActivity($billing_claims_audit, 'eligibility_verified', 'Eligibility verified — coverage confirmed active in the payer portal.');
+        $billing_claims_audit->save();
+
+        return back()->with('success', 'Eligibility verified — ready to submit.');
+    }
+
+    /** Manual billing — clear the eligibility checkoff (undo). */
+    public function unverifyEligibility(Request $request, BillingClaimAudit $billing_claims_audit)
+    {
+        $this->authorize('update', $billing_claims_audit);
+
+        if ($billing_claims_audit->isSubmittedOrBeyond()) {
+            return back()->with('warning', 'This claim has already been submitted.');
+        }
+
+        $billing_claims_audit->eligibility_verified_at = null;
+        $billing_claims_audit->eligibility_verified_by = null;
+        $billing_claims_audit->eligibility_note = null;
+        $billing_claims_audit->updated_by = auth()->id();
+        $billing_claims_audit->save();
+
+        return back()->with('success', 'Eligibility check cleared.');
+    }
+
+    /**
+     * Manual billing — Step: Submitted. The agent/staff has submitted the claim
+     * in the payer portal (Office Ally), emailed the invoice (DHS→ASW), or keyed
+     * it into Compass (DAAA), and records the confirmation/claim # + date +
+     * channel here. Requires eligibility verified first (separate step).
+     */
+    public function markSubmitted(Request $request, BillingClaimAudit $billing_claims_audit)
+    {
+        $this->authorize('update', $billing_claims_audit);
+
+        if ($billing_claims_audit->isSubmittedOrBeyond()) {
+            return back()->with('warning', 'This claim is already marked submitted.');
+        }
+        if ($billing_claims_audit->isCpBlocked()) {
+            return back()->with('warning', 'This claim is held by the CP-01 gate — clear the hold first.');
+        }
+        if (! $billing_claims_audit->isEligibilityVerified()) {
+            return back()->with('warning', 'Verify eligibility before marking the claim submitted.');
+        }
+
+        $validated = $request->validate([
+            'claim_number' => ['required', 'string', 'max:100'],
+            'submitted_on' => ['required', 'date'],
+            'submission_channel' => ['required', 'string', 'max:120'],
+        ]);
+
+        $billing_claims_audit->claim_number = $validated['claim_number'];
+        $billing_claims_audit->submission_channel = $validated['submission_channel'];
+        $billing_claims_audit->submitted_at = \Illuminate\Support\Carbon::parse($validated['submitted_on']);
+        $billing_claims_audit->submitted_by = auth()->id();
+        $billing_claims_audit->billing_status = BillingClaimAudit::BILLING_SUBMITTED;
+        $billing_claims_audit->syncClaimStatusFromBillingStatus();
+        $billing_claims_audit->updated_by = auth()->id();
+
+        $this->appendBillingActivity(
+            $billing_claims_audit,
+            'submitted_manual',
+            'Submitted via '.$validated['submission_channel'].' — confirmation '.$validated['claim_number'].'.'
+        );
+        $billing_claims_audit->save();
+
+        return back()->with('success', 'Claim marked submitted via '.$validated['submission_channel'].' (#'.$validated['claim_number'].').');
+    }
+
+    /** Append a who+when entry to the claim's activity_log + last_action. */
+    protected function appendBillingActivity(BillingClaimAudit $claim, string $event, string $detail): void
+    {
+        $log = $claim->activity_log ?? [];
+        $log[] = [
+            'event'  => $event,
+            'detail' => $detail,
+            'by'     => auth()->user()?->name ?? 'Staff',
+            'at'     => now()->toIso8601String(),
+        ];
+        $claim->activity_log = $log;
+        $claim->last_action = $detail;
+    }
+
     public function downloadEob(BillingClaimAudit $billing_claims_audit)
     {
         $this->authorize('view', $billing_claims_audit);
