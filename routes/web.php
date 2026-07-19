@@ -142,6 +142,7 @@ Route::post('/esign/{token}', [\App\Http\Controllers\FormEsignController::class,
             Route::post('/caregivers/{id}', [\App\Http\Controllers\CaregiverController::class, 'update'])->name('caregivers.update');
             Route::post('/caregivers/{id}/assignments', [\App\Http\Controllers\CaregiverController::class, 'storeAssignment'])->name('caregivers.assignments.store');
             Route::post('/caregivers/{id}/notes', [\App\Http\Controllers\CaregiverController::class, 'storeNote'])->name('caregivers.notes.store');
+            Route::post('/caregivers/{id}/payroll-portal-setup', [\App\Http\Controllers\CaregiverController::class, 'markPayrollPortalSetup'])->name('caregivers.payroll-portal-setup');
             // Legacy leads list — primary intake workflow is /intakes (see SERVER_SETUP_GUIDE.md)
             Route::get('/leads', [\App\Http\Controllers\LeadController::class, 'index'])->name('leads.index');
             Route::post('/leads', [\App\Http\Controllers\LeadController::class, 'store'])->name('leads.store');
@@ -278,6 +279,9 @@ Route::post('/esign/{token}', [\App\Http\Controllers\FormEsignController::class,
             Route::post('/billing-claims-audit/{billing_claims_audit}/refresh', [\App\Http\Controllers\BillingClaimsAuditController::class, 'refresh'])->name('billing-claims-audit.refresh')->middleware('permission:edit_billing_claims_audit');
             Route::post('/billing-claims-audit/{billing_claims_audit}/refresh-availity-status', [\App\Http\Controllers\BillingClaimsAuditController::class, 'refreshAvailityStatus'])->name('billing-claims-audit.refresh-availity-status.claim')->middleware('permission:edit_billing_claims_audit');
             Route::post('/billing-claims-audit/{billing_claims_audit}/record-eob', [\App\Http\Controllers\BillingClaimsAuditController::class, 'recordEob'])->name('billing-claims-audit.record-eob')->middleware('permission:edit_billing_claims_audit');
+            Route::post('/billing-claims-audit/{billing_claims_audit}/verify-eligibility', [\App\Http\Controllers\BillingClaimsAuditController::class, 'verifyEligibility'])->name('billing-claims-audit.verify-eligibility')->middleware('permission:edit_billing_claims_audit');
+            Route::post('/billing-claims-audit/{billing_claims_audit}/unverify-eligibility', [\App\Http\Controllers\BillingClaimsAuditController::class, 'unverifyEligibility'])->name('billing-claims-audit.unverify-eligibility')->middleware('permission:edit_billing_claims_audit');
+            Route::post('/billing-claims-audit/{billing_claims_audit}/mark-submitted', [\App\Http\Controllers\BillingClaimsAuditController::class, 'markSubmitted'])->name('billing-claims-audit.mark-submitted')->middleware('permission:edit_billing_claims_audit');
             Route::post('/billing-claims-audit/{billing_claims_audit}/override', [\App\Http\Controllers\BillingClaimsAuditController::class, 'override'])->name('billing-claims-audit.override')->middleware('permission:override_billing_claims_audit');
             Route::get('/billing-claims-audit/{billing_claims_audit}', [\App\Http\Controllers\BillingClaimsAuditController::class, 'show'])->name('billing-claims-audit.show')->middleware('permission:view_billing_claims_audit');
             Route::patch('/billing-claims-audit/{billing_claims_audit}/rate', [\App\Http\Controllers\BillingClaimsAuditController::class, 'updateRate'])->name('billing-claims-audit.update-rate')->middleware('permission:edit_billing_claims_audit');
@@ -295,6 +299,11 @@ Route::post('/esign/{token}', [\App\Http\Controllers\FormEsignController::class,
             Route::get('/payroll/{payRecord}/stub', [\App\Http\Controllers\PayrollController::class, 'downloadStub'])->name('payroll.stub')->middleware('permission:view_payroll');
             Route::get('/payroll/{payRecord}', [\App\Http\Controllers\PayrollController::class, 'show'])->name('payroll.show')->middleware('permission:view_payroll');
             Route::patch('/payroll/{payRecord}/wage', [\App\Http\Controllers\PayrollController::class, 'updateWage'])->name('payroll.update-wage')->middleware('permission:edit_payroll');
+            Route::post('/payroll/{payRecord}/mark-processed', [\App\Http\Controllers\PayrollController::class, 'markProcessed'])->name('payroll.mark-processed')->middleware('permission:edit_payroll');
+            Route::post('/payroll/{payRecord}/pay-stub', [\App\Http\Controllers\PayrollController::class, 'savePayStub'])->name('payroll.pay-stub')->middleware('permission:edit_payroll');
+            Route::post('/payroll/{payRecord}/supplemental', [\App\Http\Controllers\PayrollController::class, 'addSupplemental'])->name('payroll.supplemental')->middleware('permission:edit_payroll');
+            Route::post('/payroll/{payRecord}/reversal', [\App\Http\Controllers\PayrollController::class, 'addReversal'])->name('payroll.reversal')->middleware('permission:edit_payroll');
+            Route::post('/payroll/{payRecord}/reversal-recovered', [\App\Http\Controllers\PayrollController::class, 'markReversalRecovered'])->name('payroll.reversal-recovered')->middleware('permission:edit_payroll');
             Route::post('/payroll/{payRecord}/hold', [\App\Http\Controllers\PayrollController::class, 'applyHold'])->name('payroll.apply-hold')->middleware('permission:edit_payroll');
             Route::post('/payroll/{payRecord}/release-hold', [\App\Http\Controllers\PayrollController::class, 'releaseHold'])->name('payroll.release-hold')->middleware('permission:release_payroll_hold');
 
