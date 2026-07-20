@@ -23,7 +23,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-
+.ssh/
 # Local agent config & local sqlite database (per-developer, not shared)
 /.claude
 database/database.sqlite
