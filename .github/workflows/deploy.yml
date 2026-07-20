@@ -5,16 +5,12 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  pull_request:
+  push:
     branches:
       - master
-    types:
-      - closed
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true
-
     runs-on: ubuntu-latest
 
     steps:
@@ -23,10 +19,10 @@ jobs:
         with:
           ref: master
 
-      - name: Setup Node.js 
-        uses: actions/setup-node@v4 
-        with: 
-          node-version: 22 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
           cache: npm
 
       - name: Install NPM Dependencies
@@ -34,7 +30,7 @@ jobs:
 
       - name: Build Assets
         run: npm run build
-        
+
       - name: Create Deployment ZIP
         run: |
           zip -r staging-beydountech.zip . \
@@ -65,4 +61,5 @@ jobs:
           passphrase: ${{ secrets.SERVER_KEY_PASSPHRASE }}
           script: |
             cd /home/beydswaw/public_html/staging.beydountech.com
+            chmod +x deploy.sh
             ./deploy.sh
