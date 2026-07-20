@@ -12,7 +12,6 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-
 const BASE     = 'http://127.0.0.1:8000';
 const EMAIL    = 'super@beydountech.com';
 const PASS     = 'super123';
