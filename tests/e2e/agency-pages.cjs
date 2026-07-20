@@ -7,8 +7,6 @@
  *   - page renders (auth ok, key headings + columns present)
  *   - Alpine interactivity works (chips/tabs) with no console/page errors
  */
-
-
 const { chromium } = require('playwright');
 const fs   = require('fs');
 const path = require('path');
