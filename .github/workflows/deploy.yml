@@ -49,7 +49,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           passphrase: ${{ secrets.SERVER_KEY_PASSPHRASE }}
           source: "staging-beydountech.zip"
-          target: "/home/beydswaw/public_html/staging.beydountech.com"
+          target: "/home/beydswaw/public_html/beydountech-stage.zip"
 
       - name: Run Deployment
         uses: appleboy/ssh-action@v1.2.0
@@ -60,6 +60,6 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           passphrase: ${{ secrets.SERVER_KEY_PASSPHRASE }}
           script: |
-            cd /home/beydswaw/public_html/staging.beydountech.com
+            cd /home/beydswaw/public_html/beydountech-stage.zip
             chmod +x deploy.sh
             ./deploy.sh
