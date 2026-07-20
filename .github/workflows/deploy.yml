@@ -1,7 +1,7 @@
-name: Deploy Laravel
+name: Deploy Beydountech Staging
 
 concurrency:
-  group: production
+  group: staging
   cancel-in-progress: false
 
 on:
@@ -37,7 +37,7 @@ jobs:
         
       - name: Create Deployment ZIP
         run: |
-          zip -r beydountech.zip . \
+          zip -r staging-beydountech.zip . \
             -x ".git/*" \
             -x "node_modules/*" \
             -x "vendor/*" \
@@ -49,9 +49,11 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "beydountech.zip"
-          target: "/var/www/vhosts/beydountech.com"
+          passphrase: ${{ secrets.SERVER_KEY_PASSPHRASE }}
+          source: "staging-beydountech.zip"
+          target: "/home/beydswaw/public_html/staging.beydountech.com"
 
       - name: Run Deployment
         uses: appleboy/ssh-action@v1.2.0
@@ -59,6 +61,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          passphrase: ${{ secrets.SERVER_KEY_PASSPHRASE }}
           script: |
-            cd /var/www/vhosts/beydountech.com
+            cd /home/beydswaw/public_html/staging.beydountech.com
             ./deploy.sh
